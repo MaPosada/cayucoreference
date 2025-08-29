@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Race Results Database Explorer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tab-container {
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 0 30px;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 15px 25px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #6c757d;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-button:hover {
+            color: #2c3e50;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .control-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .control-group input,
+        .control-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-upload {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            display: flex;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .data-section {
+            flex: 2;
+        }
+
+        .stats-section {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .stats-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .stats-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .results-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .table-header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.3s ease;
+        }
+
+        th:hover {
+            background: #e9ecef;
+        }
+
+        .sort-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 5px;
+        }
+
+        .sort-indicator {
+            font-size: 12px;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+
+        .sort-indicator.active {
+            opacity: 1;
+            color: #667eea;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .rank {
+            width: 60px;
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .boat-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .time {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .no-data {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .masculino { background: #e3f2fd; color: #1976d2; }
+        .femenino { background: #fce4ec; color: #c2185b; }
+        .mixto { background: #f3e5f5; color: #7b1fa2; }
+        .juvenil { background: #e8f5e8; color: #388e3c; }
+        .abierta { background: #fff3e0; color: #f57c00; }
+        .masters { background: #f1f8e9; color: #689f38; }
+
+        .dnf {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .blank-time {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .control-row {
+                flex-direction: column;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚣 Race Results Explorer</h1>
+            <p>Explore 40+ years of racing data with advanced filtering and visualizations</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-row">
+                <div class="control-group">
+                    <label>Upload CSV Files</label>
+                    <div class="file-upload">
+                        <input type="file" id="fileInput" multiple accept=".csv" style="display: none;">
+                        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                            Choose Files
+                        </button>
+                        <span id="fileCount">No files selected</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Search Boat Name</label>
+                    <input type="text" id="searchInput" placeholder="Enter boat name...">
+                </div>
+                <div class="control-group">
+                    <label>Year</label>
+                    <select id="yearFilter">
+                        <option value="">All Years</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Category</label>
+                    <select id="categoryFilter">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-container">
+            <div class="tab-nav">
+                <button class="tab-button active" onclick="switchTab('data')">📊 Race Data</button>
+                <button class="tab-button" onclick="switchTab('analytics')">📈 Analytics</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Data Tab -->
+            <div id="dataTab" class="tab-content active">
+                <div style="display: flex; gap: 30px;">
+                    <div style="flex: 2;">
+                        <div class="results-table">
+                            <div class="table-header">
+                                <span id="resultsCount">Race Results</span>
+                            </div>
+                            <div class="table-container">
+                                <table id="resultsTable">
+                                    <thead>
+                                        <tr>
+                                            <th onclick="sortTable('rank')">
+                                                <div class="sort-header">
+                                                    <span>Rank</span>
+                                                    <span class="sort-indicator" id="sort-rank">↕</span>
+                                                </div>
+                                            </th>
+                                            <th onclick="sortTable('boat')">
+                                                <div class="sort-header">
+                                                    <span>Boat</span>
+                                                    <span class="sort-indicator" id="sort-boat">↕</span>
+                                                </div>
+                                            </th>
+                                            <th onclick="sortTable('categoryShort')">
+                                                <div class="sort-header">
+                                                    <span>Category</span>
+                                                    <span class="sort-indicator" id="sort-categoryShort">↕</span>
+                                                </div>
+                                            </th>
+                                            <th onclick="sortTable('year')">
+                                                <div class="sort-header">
+                                                    <span>Year</span>
+                                                    <span class="sort-indicator" id="sort-year">↕</span>
+                                                </div>
+                                            </th>
+                                            <th onclick="sortTable('finalTime')">
+                                                <div class="sort-header">
+                                                    <span>Final Time</span>
+                                                    <span class="sort-indicator" id="sort-finalTime">↕</span>
+                                                </div>
+                                            </th>
+                                            <th onclick="sortTable('difference')">
+                                                <div class="sort-header">
+                                                    <span>Difference</span>
+                                                    <span class="sort-indicator" id="sort-difference">↕</span>
+                                                </div>
+                                            </th>
+                                            <th onclick="sortTable('firstStretch')">
+                                                <div class="sort-header">
+                                                    <span>1st Stretch</span>
+                                                    <span class="sort-indicator" id="sort-firstStretch">↕</span>
+                                                </div>
+                                            </th>
+                                            <th onclick="sortTable('lago')">
+                                                <div class="sort-header">
+                                                    <span>Lago</span>
+                                                    <span class="sort-indicator" id="sort-lago">↕</span>
+                                                </div>
+                                            </th>
+                                            <th onclick="sortTable('miraflores')">
+                                                <div class="sort-header">
+                                                    <span>Miraflores</span>
+                                                    <span class="sort-indicator" id="sort-miraflores">↕</span>
+                                                </div>
+                                            </th>
+                                            <th onclick="sortTable('corteCulebra')">
+                                                <div class="sort-header">
+                                                    <span>Corte Culebra</span>
+                                                    <span class="sort-indicator" id="sort-corteCulebra">↕</span>
+                                                </div>
+                                            </th>
+                                            <th onclick="sortTable('diablo')">
+                                                <div class="sort-header">
+                                                    <span>Diablo</span>
+                                                    <span class="sort-indicator" id="sort-diablo">↕</span>
+                                                </div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="11" class="no-data">Upload CSV files to view race results</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="flex: 1;">
+                        <div class="stats-section">
+                            <div class="stats-card">
+                                <h3>📊 Quick Stats</h3>
+                                <div id="quickStats">
+                                    <div class="stat-item">
+                                        <span>Total Races:</span>
+                                        <span class="stat-value" id="totalRaces">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span>Boats:</span>
+                                        <span class="stat-value" id="totalBoats">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span>Years:</span>
+                                        <span class="stat-value" id="yearRange">-</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span>Categories:</span>
+                                        <span class="stat-value" id="totalCategories">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div id="analyticsTab" class="tab-content">
+                <div style="padding: 30px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+                        <div class="chart-container">
+                            <h3>🏆 Category Distribution</h3>
+                            <canvas id="categoryChart" width="400" height="300"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3>⏱️ Finish Time Distribution</h3>
+                            <canvas id="timeChart" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+                        <div class="chart-container">
+                            <h3>📅 Boats by Year</h3>
+                            <canvas id="yearChart" width="400" height="300"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3>🚤 Top Performing Boats</h3>
+                            <canvas id="topBoatsChart" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 30px;">
+                        <div class="chart-container">
+                            <h3>🏁 Record Progression by Category Over Time</h3>
+                            <div style="margin-bottom: 15px;">
+                                <select id="recordCategoryFilter" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                                    <option value="">All Categories</option>
+                                </select>
+                            </div>
+                            <canvas id="recordChart" width="800" height="400"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let filteredData = [];
+        let charts = {};
+        let currentSort = { field: null, direction: 'asc' };
+
+        // File handling
+        document.getElementById('fileInput').addEventListener('change', handleFiles);
+        document.getElementById('searchInput').addEventListener('input', filterData);
+        document.getElementById('yearFilter').addEventListener('change', filterData);
+        document.getElementById('categoryFilter').addEventListener('change', filterData);
+
+        function handleFiles(event) {
+            const files = event.target.files;
+            document.getElementById('fileCount').textContent = `${files.length} file(s) selected`;
+            
+            if (files.length === 0) return;
+
+            allData = [];
+            let filesProcessed = 0;
+
+            Array.from(files).forEach(file => {
+                Papa.parse(file, {
+                    header: false,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        parseCSVData(results.data, file.name);
+                        filesProcessed++;
+                        
+                        if (filesProcessed === files.length) {
+                            updateFilters();
+                            filterData();
+                            updateCharts();
+                        }
+                    }
+                });
+            });
+        }
+
+        function parseCSVData(data, filename) {
+            // Extract year from filename if possible
+            const yearMatch = filename.match(/(\d{4})/);
+            let defaultYear = yearMatch ? yearMatch[1] : '';
+
+            data.forEach(row => {
+                // Skip completely empty rows or rows with no data at all
+                if (!row || row.length === 0) return;
+
+                // Skip header row
+                if (row[0] === '#' || row[0] === 'Rank') {
+                    return;
+                }
+
+                // Process data rows - must have at least a rank (or DNF) and boat name
+                if (row[0] && row[0].trim() !== '' && row[1] && row[1].trim() !== '') {
+                    // Handle DNF, DNS, DSQ cases
+                    let rank = 0;
+                    let isDNF = false;
+                    
+                    if (isNaN(row[0])) {
+                        // Handle DNF, DNS, DSQ, etc.
+                        isDNF = true;
+                        rank = row[0].toString().toUpperCase();
+                    } else {
+                        rank = parseInt(row[0]) || 0;
+                    }
+
+                    const raceData = {
+                        rank: rank,
+                        isDNF: isDNF,
+                        boat: row[1].trim() || '',
+                        firstStretch: row[2] || '',
+                        lago: row[3] || '',
+                        miraflores: row[4] || '',
+                        corteCulebra: row[5] || '',
+                        diablo: row[6] || '',
+                        finalTime: row[7] || '',
+                        difference: row[8] || '',
+                        year: row[9] || defaultYear || '',
+                        category: row[10] ? row[10].trim() : '', // Column K (index 10)
+                        categoryShort: getCategoryShort(row[10] ? row[10].trim() : '')
+                    };
+                    
+                    allData.push(raceData);
+                }
+            });
+        }
+
+        function getCategoryShort(category) {
+            if (!category) return '';
+            
+            // Clean up the category string
+            let cleanCategory = category.replace('Categoria ', '').trim();
+            
+            let result = [];
+            
+            // Check for age group
+            if (cleanCategory.includes('Juvenil')) result.push('Juvenil');
+            else if (cleanCategory.includes('Abierta')) result.push('Abierta');
+            else if (cleanCategory.includes('Masters')) result.push('Masters');
+            
+            // Check for gender
+            if (cleanCategory.includes('Masculino')) result.push('Masculino');
+            else if (cleanCategory.includes('Femenino')) result.push('Femenino');
+            else if (cleanCategory.includes('Mixta') || cleanCategory.includes('Mixto')) result.push('Mixto');
+            
+            return result.join(' ');
+        }
+
+        function updateFilters() {
+            // Update year filter
+            const years = [...new Set(allData.map(d => d.year))].filter(y => y).sort();
+            const yearFilter = document.getElementById('yearFilter');
+            yearFilter.innerHTML = '<option value="">All Years</option>';
+            years.forEach(year => {
+                yearFilter.innerHTML += `<option value="${year}">${year}</option>`;
+            });
+
+            // Update category filter
+            const categories = [...new Set(allData.map(d => d.categoryShort))].filter(c => c).sort();
+            const categoryFilter = document.getElementById('categoryFilter');
+            categoryFilter.innerHTML = '<option value="">All Categories</option>';
+            categories.forEach(category => {
+                categoryFilter.innerHTML += `<option value="${category}">${category}</option>`;
+            });
+        }
+
+        function switchTab(tabName) {
+            // Remove active class from all tabs and buttons
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // Add active class to selected tab and button
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+
+            // Update charts if switching to analytics tab
+            if (tabName === 'analytics') {
+                setTimeout(() => {
+                    updateCharts();
+                    updateYearChart();
+                    updateTopBoatsChart();
+                    updateRecordChart();
+                    updateRecordCategoryFilter();
+                }, 100); // Small delay to ensure tab is visible
+            }
+        }
+
+        function updateRecordCategoryFilter() {
+            const recordCategoryFilter = document.getElementById('recordCategoryFilter');
+            if (!recordCategoryFilter) return;
+
+            // Get unique categories from filtered data
+            const categories = [...new Set(filteredData.map(d => d.categoryShort))].filter(c => c).sort();
+            
+            // Store current selection
+            const currentValue = recordCategoryFilter.value;
+            
+            // Update options
+            recordCategoryFilter.innerHTML = '<option value="">All Categories</option>';
+            categories.forEach(category => {
+                recordCategoryFilter.innerHTML += `<option value="${category}">${category}</option>`;
+            });
+            
+            // Restore selection if still valid
+            if (categories.includes(currentValue)) {
+                recordCategoryFilter.value = currentValue;
+            }
+
+            // Add event listener
+            recordCategoryFilter.removeEventListener('change', updateRecordChart);
+            recordCategoryFilter.addEventListener('change', updateRecordChart);
+        }
+
+        function updateRecordChart() {
+            const ctx = document.getElementById('recordChart');
+            if (!ctx) return;
+            
+            const chartCtx = ctx.getContext('2d');
+            
+            if (charts.record) {
+                charts.record.destroy();
+            }
+
+            const selectedCategory = document.getElementById('recordCategoryFilter')?.value || '';
+
+            // Filter data for valid race times and selected category
+            let recordData = filteredData.filter(item => {
+                return !item.isDNF && 
+                       item.finalTime && 
+                       item.finalTime.includes(':') && 
+                       item.year && 
+                       !isNaN(item.year) &&
+                       (selectedCategory === '' || item.categoryShort === selectedCategory);
+            });
+
+            if (recordData.length === 0) {
+                chartCtx.clearRect(0, 0, ctx.width, ctx.height);
+                chartCtx.fillStyle = '#6c757d';
+                chartCtx.font = '16px Arial';
+                chartCtx.textAlign = 'center';
+                chartCtx.fillText('No record data available for selected filters', ctx.width / 2, ctx.height / 2);
+                return;
+            }
+
+            // Convert times to seconds and group by category and year
+            recordData = recordData.map(item => ({
+                ...item,
+                timeInSeconds: parseTimeToSeconds(item.finalTime),
+                yearNum: parseInt(item.year)
+            })).filter(item => item.timeInSeconds < 999999);
+
+            // Group by category
+            const categoriesData = {};
+            recordData.forEach(item => {
+                const category = item.categoryShort;
+                if (!categoriesData[category]) {
+                    categoriesData[category] = [];
+                }
+                categoriesData[category].push(item);
+            });
+
+            // Calculate record progression for each category
+            const datasets = [];
+            const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7', '#ffecd2', '#fcb69f'];
+            let colorIndex = 0;
+
+            Object.keys(categoriesData).forEach(category => {
+                const categoryRaces = categoriesData[category].sort((a, b) => a.yearNum - b.yearNum);
+                
+                // Track record progression
+                const recordPoints = [];
+                let currentRecord = Infinity;
+                
+                categoryRaces.forEach(race => {
+                    if (race.timeInSeconds < currentRecord) {
+                        currentRecord = race.timeInSeconds;
+                        recordPoints.push({
+                            x: race.yearNum,
+                            y: currentRecord / 60, // Convert to minutes for display
+                            boat: race.boat,
+                            timeDisplay: race.finalTime,
+                            category: race.categoryShort
+                        });
+                    }
+                });
+
+                if (recordPoints.length > 0) {
+                    datasets.push({
+                        label: category,
+                        data: recordPoints,
+                        borderColor: colors[colorIndex % colors.length],
+                        backgroundColor: colors[colorIndex % colors.length] + '20',
+                        fill: false,
+                        tension: 0.1,
+                        pointBackgroundColor: colors[colorIndex % colors.length],
+                        pointBorderColor: colors[colorIndex % colors.length],
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    });
+                    colorIndex++;
+                }
+            });
+
+            if (datasets.length === 0) {
+                chartCtx.clearRect(0, 0, ctx.width, ctx.height);
+                chartCtx.fillStyle = '#6c757d';
+                chartCtx.font = '16px Arial';
+                chartCtx.textAlign = 'center';
+                chartCtx.fillText('No record progression data available', ctx.width / 2, ctx.height / 2);
+                return;
+            }
+
+            charts.record = new Chart(chartCtx, {
+                type: 'line',
+                data: {
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        intersect: false,
+                        mode: 'point'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return `Year: ${context[0].parsed.x}`;
+                                },
+                                label: function(context) {
+                                    const point = context.raw;
+                                    return [
+                                        `Category: ${point.category}`,
+                                        `New Record: ${point.timeDisplay}`,
+                                        `Boat: ${point.boat}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Year'
+                            },
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {
+                                    return Math.floor(value);
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Time (minutes)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    const minutes = Math.floor(value);
+                                    const seconds = Math.round((value - minutes) * 60);
+                                    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateYearChart() {
+            const ctx = document.getElementById('yearChart').getContext('2d');
+            
+            if (charts.year) {
+                charts.year.destroy();
+            }
+
+            // Count races by year
+            const yearCounts = {};
+            filteredData.forEach(item => {
+                const year = item.year || 'Unknown';
+                yearCounts[year] = (yearCounts[year] || 0) + 1;
+            });
+
+            const sortedYears = Object.keys(yearCounts).sort();
+            const colors = '#667eea';
+
+            charts.year = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedYears,
+                    datasets: [{
+                        label: 'Number of Boats',
+                        data: sortedYears.map(year => yearCounts[year]),
+                        backgroundColor: colors,
+                        borderColor: '#5a67d8',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Year'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Number of Boats'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTopBoatsChart() {
+            const ctx = document.getElementById('topBoatsChart').getContext('2d');
+            
+            if (charts.topBoats) {
+                charts.topBoats.destroy();
+            }
+
+            // Count wins (1st place finishes) by boat
+            const boatWins = {};
+            filteredData.forEach(item => {
+                if (item.rank === 1 && !item.isDNF) {
+                    boatWins[item.boat] = (boatWins[item.boat] || 0) + 1;
+                }
+            });
+
+            // Get top 10 boats by wins
+            const sortedBoats = Object.entries(boatWins)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 10);
+
+            if (sortedBoats.length === 0) {
+                // Show message when no wins data
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.fillStyle = '#6c757d';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('No wins data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
+            const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7', '#ffecd2', '#fcb69f'];
+
+            charts.topBoats = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedBoats.map(([boat]) => boat),
+                    datasets: [{
+                        label: 'Wins',
+                        data: sortedBoats.map(([, wins]) => wins),
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Number of Wins'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function sortTable(field) {
+            // Toggle sort direction if clicking the same field
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+
+            // Clear all sort indicators
+            document.querySelectorAll('.sort-indicator').forEach(indicator => {
+                indicator.textContent = '↕';
+                indicator.classList.remove('active');
+            });
+
+            // Set active sort indicator
+            const indicator = document.getElementById(`sort-${field}`);
+            indicator.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+            indicator.classList.add('active');
+
+            // Sort the data
+            filteredData.sort((a, b) => {
+                let valueA = a[field];
+                let valueB = b[field];
+
+                // Handle special cases
+                if (field === 'rank') {
+                    // Handle DNF cases - put them at the end
+                    if (a.isDNF && !b.isDNF) return currentSort.direction === 'asc' ? 1 : -1;
+                    if (!a.isDNF && b.isDNF) return currentSort.direction === 'asc' ? -1 : 1;
+                    if (a.isDNF && b.isDNF) return 0; // Keep DNF order as is
+                    
+                    valueA = parseInt(valueA) || 0;
+                    valueB = parseInt(valueB) || 0;
+                } else if (field === 'year') {
+                    valueA = parseInt(valueA) || 0;
+                    valueB = parseInt(valueB) || 0;
+                } else if (['finalTime', 'difference', 'firstStretch', 'lago', 'miraflores', 'corteCulebra', 'diablo'].includes(field)) {
+                    // Handle time sorting
+                    valueA = parseTimeToSeconds(valueA);
+                    valueB = parseTimeToSeconds(valueB);
+                } else {
+                    // String comparison for boat names and categories
+                    valueA = (valueA || '').toString().toLowerCase();
+                    valueB = (valueB || '').toString().toLowerCase();
+                }
+
+                if (valueA < valueB) return currentSort.direction === 'asc' ? -1 : 1;
+                if (valueA > valueB) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            updateTable();
+        }
+
+        function parseTimeToSeconds(timeStr) {
+            if (!timeStr || timeStr.trim() === '' || timeStr === '-') return 999999; // Put blanks at end
+            
+            const parts = timeStr.split(':');
+            if (parts.length === 3) {
+                const hours = parseInt(parts[0]) || 0;
+                const minutes = parseInt(parts[1]) || 0;
+                const seconds = parseInt(parts[2]) || 0;
+                return hours * 3600 + minutes * 60 + seconds;
+            }
+            return 999999; // Invalid time format goes to end
+        }
+
+        function filterData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const yearFilter = document.getElementById('yearFilter').value;
+            const categoryFilter = document.getElementById('categoryFilter').value;
+
+            filteredData = allData.filter(item => {
+                const matchesSearch = item.boat.toLowerCase().includes(searchTerm);
+                const matchesYear = !yearFilter || item.year === yearFilter;
+                const matchesCategory = !categoryFilter || item.categoryShort.includes(categoryFilter);
+                
+                return matchesSearch && matchesYear && matchesCategory;
+            });
+
+            updateTable();
+            updateStats();
+            
+            // Reapply current sort if one is active
+            if (currentSort.field) {
+                sortTable(currentSort.field);
+            }
+        }
+
+        function updateTable() {
+            const tbody = document.querySelector('#resultsTable tbody');
+            const resultsCount = document.getElementById('resultsCount');
+            
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="no-data">No results found</td></tr>';
+                resultsCount.textContent = 'Race Results - No results';
+                return;
+            }
+
+            resultsCount.textContent = `Race Results - ${filteredData.length} results`;
+            
+            tbody.innerHTML = filteredData.map(item => `
+                <tr>
+                    <td class="rank ${item.isDNF ? 'dnf' : ''}">${item.rank}</td>
+                    <td class="boat-name">${item.boat}</td>
+                    <td><span class="category-badge ${getCategoryClass(item.categoryShort)}">${item.categoryShort}</span></td>
+                    <td>${item.year}</td>
+                    <td class="time ${!item.finalTime || item.finalTime.trim() === '' ? 'blank-time' : ''}">${item.finalTime || '-'}</td>
+                    <td class="time ${!item.difference || item.difference.trim() === '' ? 'blank-time' : ''}">${item.difference || '-'}</td>
+                    <td class="time ${!item.firstStretch || item.firstStretch.trim() === '' ? 'blank-time' : ''}">${item.firstStretch || '-'}</td>
+                    <td class="time ${!item.lago || item.lago.trim() === '' ? 'blank-time' : ''}">${item.lago || '-'}</td>
+                    <td class="time ${!item.miraflores || item.miraflores.trim() === '' ? 'blank-time' : ''}">${item.miraflores || '-'}</td>
+                    <td class="time ${!item.corteCulebra || item.corteCulebra.trim() === '' ? 'blank-time' : ''}">${item.corteCulebra || '-'}</td>
+                    <td class="time ${!item.diablo || item.diablo.trim() === '' ? 'blank-time' : ''}">${item.diablo || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function getCategoryClass(category) {
+            let classes = [];
+            
+            if (category.includes('Masculino')) classes.push('masculino');
+            else if (category.includes('Femenino')) classes.push('femenino');
+            else if (category.includes('Mixto')) classes.push('mixto');
+            
+            if (category.includes('Juvenil')) classes.push('juvenil');
+            else if (category.includes('Abierta')) classes.push('abierta');
+            else if (category.includes('Masters')) classes.push('masters');
+            
+            return classes.join(' ');
+        }
+
+        function updateStats() {
+            const uniqueBoats = new Set(filteredData.map(d => d.boat)).size;
+            const years = filteredData.map(d => d.year).filter(y => y);
+            const yearRange = years.length ? `${Math.min(...years)} - ${Math.max(...years)}` : '-';
+            const uniqueCategories = new Set(filteredData.map(d => d.categoryShort)).size;
+
+            // Count finished vs DNF entries
+            const finishedCount = filteredData.filter(d => !d.isDNF && d.finalTime && d.finalTime.trim() !== '').length;
+            const dnfCount = filteredData.filter(d => d.isDNF || !d.finalTime || d.finalTime.trim() === '').length;
+
+            document.getElementById('totalRaces').textContent = filteredData.length;
+            document.getElementById('totalBoats').textContent = uniqueBoats;
+            document.getElementById('yearRange').textContent = yearRange;
+            document.getElementById('totalCategories').textContent = uniqueCategories;
+        }
+
+        function updateCharts() {
+            updateCategoryChart();
+            updateTimeChart();
+            // Only update additional charts if analytics tab is active
+            if (document.getElementById('analyticsTab').classList.contains('active')) {
+                updateYearChart();
+                updateTopBoatsChart();
+                updateRecordChart();
+            }
+        }
+
+        function updateCategoryChart() {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            
+            if (charts.category) {
+                charts.category.destroy();
+            }
+
+            const categoryCounts = {};
+            filteredData.forEach(item => {
+                const cat = item.categoryShort || 'Unknown';
+                categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+            });
+
+            const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'];
+            
+            charts.category = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categoryCounts),
+                    datasets: [{
+                        data: Object.values(categoryCounts),
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTimeChart() {
+            const ctx = document.getElementById('timeChart').getContext('2d');
+            
+            if (charts.time) {
+                charts.time.destroy();
+            }
+
+            // Convert times to minutes for easier visualization, excluding DNF/blank entries
+            const timeData = filteredData
+                .filter(item => !item.isDNF && item.finalTime && item.finalTime.includes(':'))
+                .map(item => {
+                    const time = item.finalTime.split(':');
+                    const hours = parseInt(time[0]) || 0;
+                    const minutes = parseInt(time[1]) || 0;
+                    const seconds = parseInt(time[2]) || 0;
+                    return hours * 60 + minutes + seconds / 60;
+                })
+                .sort((a, b) => a - b);
+
+            if (timeData.length === 0) {
+                // Show message when no valid time data
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.fillStyle = '#6c757d';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('No time data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
+            // Create histogram with 15-minute bins
+            const binSize = 15; // 15 minutes per bin
+            const min = Math.floor(Math.min(...timeData) / binSize) * binSize;
+            const max = Math.ceil(Math.max(...timeData) / binSize) * binSize;
+            const numBins = Math.ceil((max - min) / binSize);
+            
+            const histogram = Array(numBins).fill(0);
+            const labels = [];
+            
+            for (let i = 0; i < numBins; i++) {
+                const binStart = min + i * binSize;
+                const binEnd = binStart + binSize;
+                
+                // Format label as hours:minutes
+                const startHours = Math.floor(binStart / 60);
+                const startMins = binStart % 60;
+                const endHours = Math.floor(binEnd / 60);
+                const endMins = binEnd % 60;
+                
+                labels.push(`${startHours}:${startMins.toString().padStart(2, '0')}-${endHours}:${endMins.toString().padStart(2, '0')}`);
+                
+                // Count times in this bin
+                timeData.forEach(time => {
+                    if (time >= binStart && time < binEnd) {
+                        histogram[i]++;
+                    }
+                });
+            }
+
+            charts.time = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: histogram,
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: '#667eea',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Finish Time (15-minute intervals)'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Number of Boats'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize with sample data from the uploaded file
+        const sampleData = `#,Cayuco,1st Stretch,Lago,Miraflores,Corte Culebra,Diablo,Tiempo,Diferencia,Año
+1,Chava,0:42:39,2:47:11,0:09:40,1:11:41,0:14:38,5:05:49,0:00:00,2018
+2,Injusto,0:43:09,2:48:45,0:09:36,1:10:04,0:14:21,5:05:55,0:00:06,2018
+3,Alarma 24,0:44:14,2:56:24,0:09:53,1:13:10,0:15:16,5:18:57,0:13:08,2018`;
+
+        // Parse sample data to show functionality
+        Papa.parse(sampleData, {
+            header: false,
+            complete: function(results) {
+                // Set sample category
+                results.data.forEach((row, index) => {
+                    if (index === 0) return; // Skip header
+                    if (!row[1]) return;
+                    
+                    allData.push({
+                        rank: parseInt(row[0]) || 0,
+                        boat: row[1] || '',
+                        firstStretch: row[2] || '',
+                        lago: row[3] || '',
+                        miraflores: row[4] || '',
+                        corteCulebra: row[5] || '',
+                        diablo: row[6] || '',
+                        finalTime: row[7] || '',
+                        difference: row[8] || '',
+                        year: row[9] || '2018',
+                        category: 'Categoria Juvenil Masculino',
+                        categoryShort: 'Juvenil Masculino'
+                    });
+                });
+                
+                updateFilters();
+                filterData();
+                updateCharts();
+            }
+        });
+    </script>
+</body>
+</html>
