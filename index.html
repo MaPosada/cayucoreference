@@ -356,18 +356,7 @@
 
         <div class="controls">
             <div class="control-row">
-                <!--
-                <div class="control-group">
-                    <label>Upload CSV Files</label>
-                    <div class="file-upload">
-                        <input type="file" id="fileInput" multiple accept=".csv" style="display: none;">
-                        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                            Choose Files
-                        </button>
-                        <span id="fileCount">No files selected</span>
-                    </div>
-                </div>
-                -->
+
                 <div class="control-group">
                     <label>Search Boat Name</label>
                     <input type="text" id="searchInput" placeholder="Enter boat name...">
@@ -562,38 +551,23 @@
         let charts = {};
         let currentSort = { field: null, direction: 'asc' };
 
-        // File handling
-        //  document.getElementById('fileInput').addEventListener('change', handleFiles);
+
         document.getElementById('searchInput').addEventListener('input', filterData);
         document.getElementById('yearFilter').addEventListener('change', filterData);
         document.getElementById('categoryFilter').addEventListener('change', filterData);
 
         function handleFiles(csvData) {
-            /*
-            const files = event.target.files;
-            document.getElementById('fileCount').textContent = `${files.length} file(s) selected`;
-            
-            if (files.length === 0) return;
 
-            allData = [];
-            let filesProcessed = 0;
-*/
-//            Array.from(files).forEach(file => {
                 Papa.parse(csvData, {
                     header: false,
                     skipEmptyLines: true,
                     complete: function(results) {
                         parseCSVData(results.data);
-                        //filesProcessed++;
-                        
-                        //if (filesProcessed === files.length) {
                             updateFilters();
                             filterData();
                             updateCharts();
-                        //}
                     }
                 });
-            //});
         }
 
         function parseCSVData(data) {
@@ -2647,40 +2621,6 @@
 16,Predator,1:02:27,DNF,0:13:55,1:52:05,0:20:54,,,2001,Categoria Abierta`; 
 
         handleFiles(sampleData)
-
-/*
-        // Parse sample data to show functionality
-        Papa.parse(sampleData, {
-            header: false,
-            complete: function(results) {
-                // Set sample category
-                results.data.forEach((row, index) => {
-                    if (index === 0) return; // Skip header
-                    if (!row[1]) return;
-                    
-                    allData.push({
-                        rank: parseInt(row[0]) || 0,
-                        boat: row[1] || '',
-                        firstStretch: row[2] || '',
-                        lago: row[3] || '',
-                        miraflores: row[4] || '',
-                        corteCulebra: row[5] || '',
-                        diablo: row[6] || '',
-                        finalTime: row[7] || '',
-                        difference: row[8] || '',
-                        year: row[9] || '',
-                        category: '',
-                        categoryShort: ''
-                    });
-                });
-                
-                updateFilters();
-                filterData();
-                updateCharts();
-            }
-        });
-    */
-
 
     </script>
 </body>
