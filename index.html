@@ -350,8 +350,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚣 Race Results Explorer</h1>
-            <p>Explore 40+ years of racing data with advanced filtering and visualizations</p>
+            <h1>Race Results Explorer</h1>
+            <p>Explore 40+ years of cayuco racing data with filtering and visualizations</p>
         </div>
 
         <div class="controls">
@@ -378,8 +378,8 @@
 
         <div class="tab-container">
             <div class="tab-nav">
-                <button class="tab-button active" onclick="switchTab('data')">📊 Race Data</button>
-                <button class="tab-button" onclick="switchTab('analytics')">📈 Analytics</button>
+                <button class="tab-button active" onclick="switchTab('data')">Race Data</button>
+                <button class="tab-button" onclick="switchTab('analytics')">Analytics</button>
             </div>
         </div>
 
@@ -477,10 +477,10 @@
                     <div style="flex: 1;">
                         <div class="stats-section">
                             <div class="stats-card">
-                                <h3>📊 Quick Stats</h3>
+                                <h3>Quick Stats</h3>
                                 <div id="quickStats">
                                     <div class="stat-item">
-                                        <span>Total Races:</span>
+                                        <span>Total Entries:</span>
                                         <span class="stat-value" id="totalRaces">0</span>
                                     </div>
                                     <div class="stat-item">
@@ -507,31 +507,31 @@
                 <div style="padding: 30px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
                         <div class="chart-container">
-                            <h3>🏆 Category Distribution</h3>
+                            <h3>Category Distribution</h3>
                             <canvas id="categoryChart" width="400" height="300"></canvas>
                         </div>
 
                         <div class="chart-container">
-                            <h3>⏱️ Finish Time Distribution</h3>
+                            <h3>Finish Time Distribution</h3>
                             <canvas id="timeChart" width="400" height="300"></canvas>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
                         <div class="chart-container">
-                            <h3>📅 Boats by Year</h3>
+                            <h3>Boats by Year</h3>
                             <canvas id="yearChart" width="400" height="300"></canvas>
                         </div>
 
                         <div class="chart-container">
-                            <h3>🚤 Top Performing Boats</h3>
+                            <h3>Top Performing Boats</h3>
                             <canvas id="topBoatsChart" width="400" height="300"></canvas>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr; gap: 30px;">
                         <div class="chart-container">
-                            <h3>🏁 Record Progression by Category Over Time</h3>
+                            <h3>Record Progression by Category Over Time</h3>
                             <div style="margin-bottom: 15px;">
                                 <select id="recordCategoryFilter" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
                                     <option value="">All Categories</option>
@@ -557,7 +557,6 @@
         document.getElementById('categoryFilter').addEventListener('change', filterData);
 
         function handleFiles(csvData) {
-
                 Papa.parse(csvData, {
                     header: false,
                     skipEmptyLines: true,
@@ -677,7 +676,7 @@
                     updateRecordChart();
                     updateRecordCategoryFilter();
                 }, 100); // Small delay to ensure tab is visible
-            }
+            } 
         }
 
         function updateRecordCategoryFilter() {
@@ -1076,6 +1075,14 @@
             if (currentSort.field) {
                 sortTable(currentSort.field);
             }
+            
+            setTimeout(() => {
+                updateCharts();
+                updateYearChart();
+                updateTopBoatsChart();
+                updateRecordChart();
+                updateRecordCategoryFilter();
+            }, 100); // Small delay to ensure tab is visible
         }
 
         function updateTable() {
